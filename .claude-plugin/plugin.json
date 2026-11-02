@@ -1,0 +1,9 @@
+{
+  "name": "email-tools",
+  "version": "1.0.0",
+  "description": "Email automation skills for Claude Code: receive email via IMAP and send email via SMTP using a local .env file. Ships the email-receive and email-send agent skills.",
+  "author": {
+    "name": "Zhang Shaojun",
+    "email": "sj_zhang@msn.com"
+  }
+}

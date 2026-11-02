@@ -1,0 +1,25 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "my-skills",
+  "version": "1.0.0",
+  "description": "Email automation skills (IMAP receive + SMTP send) from jengy/my_skills, installable as Claude Code plugins.",
+  "owner": {
+    "name": "Zhang Shaojun",
+    "email": "sj_zhang@msn.com"
+  },
+  "plugins": [
+    {
+      "name": "email-tools",
+      "description": "Email utilities for Claude Code: email-receive (IMAP fetch with attachments) and email-send (SMTP send with HTML and attachments), configured via a local .env file.",
+      "author": {
+        "name": "Zhang Shaojun",
+        "email": "sj_zhang@msn.com"
+      },
+      "category": "productivity",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/jengy/my_skills.git"
+      }
+    }
+  ]
+}

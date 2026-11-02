@@ -1,0 +1,3 @@
+interface:
+  display_name: "Email Receive"
+  short_description: "Fetch and read emails via IMAP using .env credentials"

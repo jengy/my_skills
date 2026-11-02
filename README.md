@@ -27,12 +27,15 @@ my_skills/
 使用 Codex 内置的 skill-installer 从本仓库安装：
 
 ```bash
+# 一次安装全部技能（--path 后跟空格分隔的多个路径）
+python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
+  --repo jengy/my_skills \
+  --path skills/email-receive skills/email-send
+
+# 或只装一个
 python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
   --repo jengy/my_skills \
   --path skills/email-receive
-python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
-  --repo jengy/my_skills \
-  --path skills/email-send
 ```
 
 或直接使用 URL 形式：
@@ -62,3 +65,4 @@ python ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py <skill-di
 ## 参考
 
 - [openai/skills](https://github.com/openai/skills) — 官方技能库与规范
+

@@ -8,7 +8,7 @@ Codex 技能仓库（Skills Repo）。
 
 | 技能 | 说明 |
 | ---- | ---- |
-| `email-receive` | 通过 IMAP 收取邮件，配置从 `.env` 读取（见 `.env.example`） |
+| `email-receive` | 通过 IMAP 收取邮件，配置从 `.env` 读取；支持正文与附件下载（模板见 `email-receive/.env.example`） |
 
 ## 安装技能到本机
 

@@ -7,12 +7,13 @@ Usage:
     python fetch_emails.py [options]
 
 Options:
-    --limit N          Max messages to fetch (default: EMAIL_FETCH_LIMIT or 10)
-    --folder NAME      IMAP folder, e.g. INBOX (default: IMAP_MAILBOX or INBOX)
-    --days N           Only fetch messages from the last N days
-    --full             Also print the message body text
-    --list-folders     List available IMAP folders and exit
-    --env PATH         Path to a specific .env file
+    --limit N            Max messages to fetch (default: EMAIL_FETCH_LIMIT or 10)
+    --folder NAME        IMAP folder, e.g. INBOX (default: IMAP_MAILBOX or INBOX)
+    --days N             Only fetch messages from the last N days
+    --full               Also print the message body text
+    --attachments DIR    Save email attachments into DIR (created if missing)
+    --list-folders       List available IMAP folders and exit
+    --env PATH           Path to a specific .env file
 """
 
 import argparse
@@ -23,6 +24,14 @@ import sys
 from datetime import datetime, timedelta
 from email.header import decode_header
 from pathlib import Path
+
+
+def force_utf8_stdout():
+    """Ensure UTF-8 output so Chinese text renders correctly on Windows."""
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, OSError, ValueError):
+        pass
 
 
 def parse_env_file(path):
@@ -80,11 +89,22 @@ def decode_mime_header(value):
 
 
 def decode_part(part):
+    """Decode a message part payload, falling back through utf-8 and gb18030.
+
+    Some legacy 163/QQ emails omit a charset declaration and are actually GBK
+    encoded, so a plain utf-8 decode would fail.
+    """
     payload = part.get_payload(decode=True)
     if payload is None:
         return ""
-    charset = part.get_content_charset() or "utf-8"
-    return payload.decode(charset, errors="replace")
+    declared = part.get_content_charset()
+    encodings = ([declared] if declared else []) + ["utf-8", "gb18030"]
+    for enc in encodings:
+        try:
+            return payload.decode(enc)
+        except (LookupError, UnicodeDecodeError):
+            continue
+    return payload.decode("utf-8", errors="replace")
 
 
 def strip_html(html):
@@ -111,6 +131,63 @@ def extract_body(msg, max_chars=2000):
     return body[:max_chars]
 
 
+def sanitize_filename(name):
+    name = re.sub(r'[\\/:*?"<>|\r\n]', "_", name)
+    name = name.strip(" .")
+    return name or "attachment.bin"
+
+
+def attachment_info(msg):
+    """Return [(filename, payload), ...] for every part that has a file name."""
+    items = []
+    for part in msg.walk():
+        filename = part.get_filename()
+        if not filename:
+            continue
+        payload = part.get_payload(decode=True)
+        if payload is None:
+            continue
+        items.append((sanitize_filename(decode_mime_header(filename)), payload))
+    return items
+
+
+def save_attachments(items, dest):
+    dest = Path(dest)
+    dest.mkdir(parents=True, exist_ok=True)
+    saved = []
+    for name, payload in items:
+        target = dest / name
+        if target.exists():
+            base, suffix = target.stem, target.suffix
+            index = 1
+            while target.exists():
+                target = dest / f"{base}_{index}{suffix}"
+                index += 1
+        target.write_bytes(payload)
+        saved.append(str(target))
+    return saved
+
+
+def friendly_login_error(username, message):
+    """Map a raw IMAP login error to the raw message plus an actionable hint."""
+    text = str(message)
+    lower = text.lower()
+    if "basic authentication is disabled" in lower:
+        hint = ("This provider (Outlook.com / Hotmail / MSN) has disabled basic IMAP "
+                "authentication: enable two-step verification and use an app password. "
+                "See references/providers.md.")
+    elif "authentication failed" in lower:
+        hint = ("Check that IMAP access is enabled for this account and that the "
+                "password / authorization code is correct.")
+    elif "logon disabled" in lower or "login disabled" in lower:
+        hint = "Web login for this account may be disabled; enable POP3/IMAP service first."
+    else:
+        hint = ("Check the password / authorization code - QQ & 163 use an "
+                "authorization code, Gmail & Microsoft accounts use an app password. "
+                "See references/providers.md.")
+    return f"[ERROR] Login failed for {username}: {text}\nHint: {hint}"
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Fetch emails via IMAP using .env settings."
@@ -119,15 +196,18 @@ def main():
     parser.add_argument("--folder", default=None)
     parser.add_argument("--days", type=int, default=None)
     parser.add_argument("--full", action="store_true")
+    parser.add_argument("--attachments", default=None)
     parser.add_argument("--list-folders", action="store_true")
     parser.add_argument("--env", default=None)
     args = parser.parse_args()
+    force_utf8_stdout()
 
     env_path = find_env_file(args.env)
     if not env_path.exists():
         sys.exit(
             f"[ERROR] .env file not found at: {env_path}\n"
-            "Copy .env.example to .env and fill in the IMAP_*/EMAIL_* settings."
+            "Copy .env.example (next to this script) to .env and fill in the "
+            "IMAP_*/EMAIL_* settings."
         )
     config = parse_env_file(env_path)
 
@@ -166,7 +246,7 @@ def main():
         try:
             conn.login(username, password)
         except imaplib.IMAP4.error as exc:
-            sys.exit(f"[ERROR] Login failed for {username} on {host}: {exc}")
+            sys.exit(friendly_login_error(username, exc))
 
         if args.list_folders:
             status, folders = conn.list()
@@ -205,6 +285,16 @@ def main():
             if args.full:
                 print("Body:")
                 print(extract_body(msg))
+            attachments = attachment_info(msg)
+            if attachments:
+                print("Attachments:")
+                for name, payload in attachments:
+                    print(f"  - {name} ({len(payload)} bytes)")
+                if args.attachments:
+                    saved = save_attachments(attachments, args.attachments)
+                    print(f"  saved to {args.attachments}:")
+                    for path in saved:
+                        print(f"    - {path}")
             print("-" * 60)
     finally:
         try:

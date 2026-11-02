@@ -1,0 +1,3 @@
+interface:
+  display_name: "Email Send"
+  short_description: "Send emails via SMTP using .env credentials"

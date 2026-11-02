@@ -9,6 +9,7 @@ Codex 技能仓库（Skills Repo）。
 | 技能 | 说明 |
 | ---- | ---- |
 | `email-receive` | 通过 IMAP 收取邮件，配置从 `.env` 读取；支持正文与附件下载（模板见 `email-receive/.env.example`） |
+| `email-send` | 通过 SMTP 发送邮件，配置从 `.env` 读取；支持 HTML 正文与附件（模板见 `email-send/.env.example`） |
 
 ## 安装技能到本机
 
@@ -18,6 +19,9 @@ Codex 技能仓库（Skills Repo）。
 python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
   --repo jengy/my_skills \
   --path email-receive
+python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
+  --repo jengy/my_skills \
+  --path email-send
 ```
 
 或直接使用 URL 形式：
@@ -25,9 +29,11 @@ python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github
 ```bash
 python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
   --url https://github.com/jengy/my_skills/tree/main/email-receive
+python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
+  --url https://github.com/jengy/my_skills/tree/main/email-send
 ```
 
-安装后会写入 `$CODEX_HOME/skills/email-receive`，下一个会话即可使用。仓库为私有时，需先配置 git 凭据或设置 `GITHUB_TOKEN` / `GH_TOKEN`。
+安装后会写入 `$CODEX_HOME/skills/<skill-name>`，下一个会话即可使用。仓库为私有时，需先配置 git 凭据或设置 `GITHUB_TOKEN` / `GH_TOKEN`。
 
 ## 新增技能
 
